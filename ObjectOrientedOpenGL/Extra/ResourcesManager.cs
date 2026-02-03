@@ -19,10 +19,10 @@ public class ResourcesManager
         if (Textures.TryGetValue(path, out var texture)) return texture;
         return Textures[path] = new Texture(path);
     }
-
-    public Model GetModel(string path)
-    {
-        if (Models.TryGetValue(path, out var model)) return model;
-        return Models[path] = ModelLoader.Load(path);
-    }
+    //
+    // public Model GetModel(string path)
+    // {
+    //     if (Models.TryGetValue(path, out var model)) return model;
+    //     return Models[path] = ModelLoader.Load(path);
+    // }
 }

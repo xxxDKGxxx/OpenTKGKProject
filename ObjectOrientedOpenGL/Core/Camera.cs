@@ -278,14 +278,14 @@ public class EditorControl : Camera.IControl
         ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
     }
     
-    public EditorControl(Vector3 position, Vector3 focal)
+    public EditorControl(Vector3tk position, Vector3 focal)
     {
         Distance = (position - focal).Length;
         FocalPoint = focal;
-        Vector3 forward = (focal - position).Normalized();
+        var forward = (focal - position).Normalized();
         Pitch = MathF.Asin(forward.Y);
         Yaw = MathF.Atan2(-forward.X, -forward.Z);
-        ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
+        ViewMatrix = Matrix4tk.LookAt(Position, FocalPoint, Up);
     }
 
     public void Update(Camera camera, float dt)
@@ -350,6 +350,42 @@ public class EditorControl : Camera.IControl
     private float Pitch { get; set; }
     private float Yaw { get; set; }
     private float Distance { get; set; }
+}
+
+public class LookAtObjectControl : Camera.IControl
+{
+    public LookAtObjectControl()
+    {
+        Position = new Vector3tk(0, 0, 0);
+    }
+    
+    public LookAtObjectControl(Camera.IControl control)
+    {
+        Position = control.Position;
+    }
+    
+    public void Update(Camera camera, float dt)
+    {
+        Position = camera.Position;
+    }
+
+    public void UpdateObjectMatrix(Matrix4tk objectModelMatrix)
+    {
+        _targetObjectPosition = new Vector3tk(new Vector4tk(0f, 0f, 0f, 1f) * objectModelMatrix);
+    }
+
+    public void HandleInput(Camera camera, float dt, KeyboardState keyboard, MouseState mouse)
+    {
+        
+    }
+    
+    private Vector3 _targetObjectPosition;
+    
+    public Vector3 Position { get; private set;  }
+    public Vector3 Forward => (_targetObjectPosition - Position).Normalized();
+    public Vector3 Right => Vector3tk.Cross(Forward, Vector3tk.UnitY).Normalized();
+    public Vector3 Up => Vector3tk.Cross(Right, Forward).Normalized();
+    public Matrix4 ViewMatrix => Matrix4.LookAt(Position, _targetObjectPosition, Up);
 }
 
 public class PerspectiveProjection : Camera.IProjection

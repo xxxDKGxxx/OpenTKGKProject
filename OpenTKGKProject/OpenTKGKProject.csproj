@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Remove="Resources/**/*" />
+        <EmbeddedResource Include="Resources/**/*" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ObjectOrientedOpenGL\ObjectOrientedOpenGL.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Resources\Shaders\ground_shader.frag.cs" />
+    </ItemGroup>
+
+</Project>
