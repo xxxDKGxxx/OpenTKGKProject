@@ -1,59 +1,59 @@
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using ObjectOrientedOpenGL.Core;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace OpenTKGKProject.Resources;
 
-public struct GroundVertex(Vector3 position)
+public class Ground : IModel
 {
-    public Vector3 Position = position;
-}
-
-public sealed class Ground : IDisposable
-{
-    private readonly VertexBuffer _vertexBuffer;
-    private readonly IndexBuffer _indexBuffer;
     private readonly Mesh _mesh;
-    private readonly Vector3 _groundColor;
     
-    public Ground(Vector3 groundColor)
+    public Ground(float scale, Vector3 groundColor)
     {
-        var vertices = new GroundVertex[] 
+        var vertices = new Vertex[]
         {
-            new(new Vector3(-1, -1, 0)), // left down
-            new(new Vector3(1, 1, 0)), // right up
-            new(new Vector3(-1, 1, 0)), // left up
-            new(new Vector3(1, -1, 0)) // right down
-        };
-
-        _vertexBuffer = new VertexBuffer(vertices,
-            vertices.Length * Marshal.SizeOf<GroundVertex>(),
-            vertices.Length,
-            BufferUsageHint.StaticDraw,
-            new VertexBuffer.Attribute(0,
-                3));
-
-        var indices = new int[]
-        {
-            0, 2, 3,
-            1, 2, 3
+            new(new Vector3(-1, 0, -1), groundColor, new Vector3(0.0f, 1.0f, 0.0f)),
+            new(new Vector3(-1, 0, 1), groundColor, new Vector3(0.0f, 1.0f, 0.0f)),
+            new(new Vector3(1, 0, -1), groundColor, new Vector3(0.0f, 1.0f, 0.0f)),
+            new(new Vector3(1, 0, 1), groundColor, new Vector3(0.0f, 1.0f, 0.0f)),
         };
         
-        _indexBuffer = new IndexBuffer(indices,
-            indices.Length * sizeof(int),
+        var indices = new[]
+        {
+            0u, 1u, 2u,
+            1u, 3u, 2u
+        };
+
+        var vertexBuffer = new VertexBuffer(
+            vertices, 
+            vertices.Length * Marshal.SizeOf<Vertex>(), 
+            vertices.Length, 
+            BufferUsageHint.StaticDraw,
+            new VertexBuffer.Attribute(0, 3), // pos
+            new VertexBuffer.Attribute(1, 3), // color
+            new VertexBuffer.Attribute(2, 3)); // norm
+
+        var indexBuffer = new IndexBuffer(
+            indices,
+            indices.Length * Marshal.SizeOf<uint>(),
             DrawElementsType.UnsignedInt,
             indices.Length);
         
-        _mesh = new Mesh("Ground", PrimitiveType.Triangles, _indexBuffer, _vertexBuffer);
-        _groundColor = groundColor;
+        _mesh = new Mesh("ground", PrimitiveType.Triangles, indexBuffer, vertexBuffer);
+
+        ModelMatrix = Matrix4.CreateScale(scale);
     }
-    
-    public void Dispose()
+
+    public void Render(Shader shader)
     {
-        _vertexBuffer.Dispose();
-        _mesh.Dispose();
-        _indexBuffer.Dispose();
+        shader.Use();
+        shader.LoadMatrix4("model", ModelMatrix);
+        
+        _mesh.Bind();
+        _mesh.RenderIndexed();
+        _mesh.Unbind();
     }
+
+    public Matrix4 ModelMatrix { get; set; }
 }

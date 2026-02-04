@@ -45,6 +45,11 @@ public class Framebuffer : IBindable, IDisposable
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
     }
 
+    public void BindRead()
+    {
+        GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, Handle);
+    }
+
     public void Unbind()
     {
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);

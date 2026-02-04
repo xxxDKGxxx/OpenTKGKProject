@@ -388,6 +388,91 @@ public class LookAtObjectControl : Camera.IControl
     public Matrix4 ViewMatrix => Matrix4.LookAt(Position, _targetObjectPosition, Up);
 }
 
+public class FollowObjectControl : Camera.IControl
+{
+    public FollowObjectControl()
+    {
+        Pitch = Yaw = 0;
+        Distance = 10;
+        FocalPoint = Vector3.Zero;
+    }
+    
+    public FollowObjectControl(Camera.IControl control)
+    {
+        Distance = 10;
+        FocalPoint = control.Position + Distance * control.Forward;
+        Pitch = MathF.Asin(control.Forward.Y);
+        Yaw = MathF.Atan2(-control.Forward.X, -control.Forward.Z);
+        ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
+    }
+    
+    public FollowObjectControl(Vector3 position, Vector3 focal)
+    {
+        Distance = (position - focal).Length;
+        FocalPoint = focal;
+        Vector3 forward = (focal - position).Normalized();
+        Pitch = MathF.Asin(forward.Y);
+        Yaw = MathF.Atan2(-forward.X, -forward.Z);
+        ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
+    }
+
+    public void Update(Camera camera, float dt)
+    {
+        ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
+    }
+
+    public void HandleInput(Camera camera, float dt, KeyboardState keyboard, MouseState mouse)
+    {
+        Vector2 delta = mouse.Delta * dt;
+        if(delta == Vector2.Zero) return;
+        if (mouse.IsButtonDown(MouseButton.Button1))
+        {
+            Rotate(delta);
+        }
+        else if (mouse.IsButtonDown(MouseButton.Button2))
+        {
+            Zoom(delta);
+        }
+    }
+
+    public void Rotate(Vector2 delta)
+    {
+        var sign = Up.Y < 0 ? -1 : 1;
+        Yaw += sign * delta.X * RotationSpeed;
+        Pitch -= delta.Y * RotationSpeed;
+    }
+
+    public void Zoom(Vector2 delta)
+    {
+        Distance = MathF.Max(1.0f, Distance * MathF.Pow(1 + ZoomSpeed, delta.Y));
+    }
+    
+    public void UpdateObjectMatrix(Matrix4tk objectModelMatrix)
+    {
+        FocalPoint = new Vector3tk(new Vector4tk(0f, 0f, 0f, 1f) * objectModelMatrix);
+        _objectRotation = objectModelMatrix.ExtractRotation();
+    }
+
+    public Vector3 Position => FocalPoint - Distance * Forward;
+    public Vector3 FocalPoint { get; set; }
+    public Vector3 Forward => Orientation * -Vector3.UnitZ;
+    public Vector3 Right => Orientation * Vector3.UnitX;
+    public Vector3 Up => Orientation * Vector3.UnitY;
+    public Matrix4 ViewMatrix { get; set; }
+
+    public float ZoomSpeed { get; set; } = 1;
+    public float RotationSpeed { get; set; } = 1;
+
+    private Quaternion Orientation => _objectRotation *
+        Quaternion.FromAxisAngle(Vector3.UnitY, Yaw) * 
+        Quaternion.FromAxisAngle(Vector3.UnitX, Pitch);
+    private float Pitch { get; set; }
+    private float Yaw { get; set; }
+    private float Distance { get; set; }
+    private Quaterniontk _objectRotation = Quaterniontk.Identity;
+}
+
+
 public class PerspectiveProjection : Camera.IProjection
 {
     public void Update(Camera camera, float dt)
