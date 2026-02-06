@@ -1,6 +1,3 @@
-using ObjectOrientedOpenGL.Core;
-using OpenTK.Mathematics;
-
 namespace OpenTKGKProject.Resources.Lights;
 
 public class PointLight(
@@ -23,6 +20,6 @@ public class PointLight(
 
     public Light GetShaderLightData()
     {
-        return  _light;
+        return _light;
     }
 }

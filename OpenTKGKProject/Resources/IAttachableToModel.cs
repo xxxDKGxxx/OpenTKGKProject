@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-
 namespace OpenTKGKProject.Resources;
 
 public interface IAttachableToModel<out T>

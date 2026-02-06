@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-
 namespace OpenTKGKProject.Resources.Lights;
 
 public class DirectionalLight(Vector3 color, Vector3 direction) : IShaderLight

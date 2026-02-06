@@ -1,14 +1,12 @@
 using System.Runtime.InteropServices;
-using ObjectOrientedOpenGL.Core;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
 
 namespace OpenTKGKProject.Resources.Lights;
 
 public sealed class LightCubeModel : IDisposable
 {
     private readonly Mesh _mesh;
-    
+
     public LightCubeModel()
     {
         // 8 narożników sześcianu (Kolor ustawiony na Biały, żeby mnożyć go przez kolor światła w shaderze)
@@ -61,11 +59,11 @@ public sealed class LightCubeModel : IDisposable
             vertices.Length,
             BufferUsageHint.StaticDraw,
             new VertexBuffer.Attribute(0, 3));
-        
+
         var indexBuffer = new IndexBuffer(
-            indices, 
-            indices.Length * Marshal.SizeOf<uint>(), 
-            DrawElementsType.UnsignedInt, 
+            indices,
+            indices.Length * Marshal.SizeOf<uint>(),
+            DrawElementsType.UnsignedInt,
             indices.Length);
 
         _mesh = new Mesh("lightcube", PrimitiveType.Triangles, indexBuffer, vertexBuffer);

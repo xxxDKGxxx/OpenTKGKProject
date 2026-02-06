@@ -1,7 +1,5 @@
 using System.Runtime.InteropServices;
-using ObjectOrientedOpenGL.Core;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
 
 namespace OpenTKGKProject.Resources.Models;
 
@@ -15,17 +13,17 @@ public sealed class ColorfulTetrahedron : IDisposable, IModel
     public ColorfulTetrahedron(Vector3 position)
     {
         const float s = 0.5f;
-        
+
         var p0 = new Vector3(s, s, s);
         var p1 = new Vector3(s, -s, -s);
         var p2 = new Vector3(-s, s, -s);
         var p3 = new Vector3(-s, -s, s);
-        
+
         var color1 = new Vector3(1.0f, 0.0f, 0.0f);
         var color2 = new Vector3(0.0f, 1.0f, 0.0f);
         var color3 = new Vector3(0.0f, 0.0f, 1.0f);
         var color4 = new Vector3(1.0f, 1.0f, 0.0f);
-        
+
         var n1 = CalcNormal(p0, p3, p1);
         var n2 = CalcNormal(p0, p2, p3);
         var n3 = CalcNormal(p0, p1, p2);
@@ -83,7 +81,7 @@ public sealed class ColorfulTetrahedron : IDisposable, IModel
     }
 
     public Matrix4 ModelMatrix { get => _transform; set => _transform = value; }
-    
+
     private static Vector3 CalcNormal(Vector3 a, Vector3 b, Vector3 c)
     {
         var dir = Vector3.Cross(b - a, c - a);

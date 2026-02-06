@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-
 namespace OpenTKGKProject.Resources.Lights;
 
 public class Spotlight(
@@ -15,7 +13,7 @@ public class Spotlight(
 {
     private IModel? _attachedModel = null;
     private Vector3? _attachedOffset = null!;
-    
+
     private Light _light = new()
     {
         Type = LightType.Spotlight,
@@ -34,13 +32,13 @@ public class Spotlight(
         var resultLight = _light;
 
         if (_attachedModel is null || !_attachedOffset.HasValue) return resultLight;
-        
+
         var localPos = new Vector4(_attachedOffset.Value, 1.0f);
         var worldPos = localPos * _attachedModel.ModelMatrix;
-        
+
         resultLight.Position = worldPos.Xyz;
-            
-        var localDir = new Vector4(_light.Direction, 0.0f); 
+
+        var localDir = new Vector4(_light.Direction, 0.0f);
         var worldDir = localDir * _attachedModel.ModelMatrix;
 
         resultLight.Direction = worldDir.Xyz.Normalized();
@@ -67,7 +65,7 @@ public class Spotlight(
     {
         _attachedModel = model;
         _attachedOffset = offset;
-        
+
         return this;
     }
 }
