@@ -316,12 +316,22 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         LightCubeShader.Use();
         LightCubeShader.LoadMatrix4("view", Camera.ViewMatrix);
         LightCubeShader.LoadMatrix4("projection", Camera.ProjectionMatrix);
-        
         LightCubeModel.Bind();
         
         foreach (var light in lights)
         {
-            LightCubeShader.LoadMatrix4("model", Matrix4.CreateScale(0.2f) * Matrix4.CreateTranslation(light.Position));
+            var lightDir = light.Direction;
+            var up = Vector3.UnitY;
+
+            if (Math.Abs(Vector3.Dot(lightDir, up)) > 0.99f)
+            {
+                up = Vector3.UnitZ;
+            }
+
+            var viewMatrix = Matrix4.LookAt(Vector3.Zero, lightDir, up);
+            var rotationMatrix = viewMatrix.Inverted();
+            var modelMatrix = Matrix4.CreateScale(0.2f) * rotationMatrix * Matrix4.CreateTranslation(light.Position);
+            LightCubeShader.LoadMatrix4("model", modelMatrix);
             LightCubeShader.LoadFloat3("lightColor", light.Color);
             LightCubeModel.Render();
         }
