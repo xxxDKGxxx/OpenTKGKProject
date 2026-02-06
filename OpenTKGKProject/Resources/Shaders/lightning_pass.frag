@@ -46,7 +46,11 @@ vec3 CalcDirLight(Light light, vec3 normal, vec3 fragPos, vec3 viewPos, vec3 obj
 void main()
 {
     if (renderMode == 1) { // depth
-        FragColor = texture(gDepth, TexCoords);
+        float depth = texture(gDepth, TexCoords).r;
+        float visualization = pow(depth, 20.0);
+        
+        FragColor = vec4(vec3(visualization), 1.0);
+        
         return;
     }
     

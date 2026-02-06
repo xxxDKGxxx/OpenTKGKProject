@@ -274,7 +274,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         
         // Forward pass
         
-        // GBuffer.CopyDepthToScreen(ClientSize.X, ClientSize.Y);
+        GBuffer.CopyDepthToScreen(ClientSize.X, ClientSize.Y);
         
         GL.Enable(EnableCap.DepthTest);
 
