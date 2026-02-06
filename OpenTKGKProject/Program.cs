@@ -135,7 +135,12 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 
         Ground = new Ground(100f, new Vector3(0.5f, 0.5f, 0.5f));
 
-        PointLight = new PointLight(new Vector3(1.0f), new Vector3(1.0f, 3.0f, 0.0f));
+        PointLight = new PointLight(
+            new Vector3(1.0f), 
+            new Vector3(1.0f, 3.0f, 0.0f), 
+            1.0f, 
+            0.22f, 
+            0.2f);
 
         Spotlight = new Spotlight(
             new Vector3(1.0f),
@@ -214,15 +219,20 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         base.OnUpdateFrame(args);
         
         FpsCounter.Update(args.Time);
+        
+        CircleTrajectoryFollower.Update(Car, (float)args.Time);
+        
+        LookAtObjectControl.UpdateObjectMatrix(Car.Transform);
+        FollowObjectControl.UpdateObjectMatrix(Car.Transform);
+        
         Camera.Update((float)args.Time);
         
         if (ImGui.GetIO().WantCaptureMouse) return;
 
         var keyboard = KeyboardState.GetSnapshot();
         var mouse = MouseState.GetSnapshot();
-
         Camera.HandleInput((float)args.Time, keyboard, mouse);
-
+        
         if (keyboard.IsKeyDown(Keys.Escape)) Close();
     }
 
@@ -231,15 +241,10 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         base.OnRenderFrame(args);
 
         // Geometry Pass
-        
         GBuffer.Bind();
         
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.Enable(EnableCap.DepthTest);
-        
-        CircleTrajectoryFollower.Update(Car, (float)args.Time);
-        LookAtObjectControl.UpdateObjectMatrix(Car.Transform);
-        FollowObjectControl.UpdateObjectMatrix(Car.Transform);
         
         GeometryPassShader.LoadMatrix4("view", Camera.ViewMatrix);
         GeometryPassShader.LoadMatrix4("projection", Camera.ProjectionMatrix);
@@ -320,6 +325,17 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         
         foreach (var light in lights)
         {
+            if (light.Type == LightType.Point)
+            {
+                var pointLightModelMatrix = Matrix4.CreateScale(0.2f) * Matrix4.CreateTranslation(light.Position);
+                
+                LightCubeShader.LoadMatrix4("model", pointLightModelMatrix);
+                LightCubeShader.LoadFloat3("lightColor", light.Color);
+                LightCubeModel.Render();
+                
+                continue;
+            }
+            
             var lightDir = light.Direction;
             var up = Vector3.UnitY;
 
@@ -331,6 +347,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
             var viewMatrix = Matrix4.LookAt(Vector3.Zero, lightDir, up);
             var rotationMatrix = viewMatrix.Inverted();
             var modelMatrix = Matrix4.CreateScale(0.2f) * rotationMatrix * Matrix4.CreateTranslation(light.Position);
+            
             LightCubeShader.LoadMatrix4("model", modelMatrix);
             LightCubeShader.LoadFloat3("lightColor", light.Color);
             LightCubeModel.Render();
