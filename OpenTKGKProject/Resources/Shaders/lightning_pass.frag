@@ -36,6 +36,8 @@ uniform mat4 invView;
 uniform mat4 invProj;
 uniform vec3 viewPos;
 
+uniform int isPerspective;
+
 in vec2 TexCoords;
 
 vec3 CalculateDiffuseAndSpecular(Light light, vec3 normal, vec3 lightDir, vec3 viewPos, vec3 fragPos, vec3 objColor);
@@ -47,10 +49,9 @@ void main()
 {
     if (renderMode == 1) { // depth
         float depth = texture(gDepth, TexCoords).r;
-        float visualization = pow(depth, 20.0);
-        
-        FragColor = vec4(vec3(visualization), 1.0);
-        
+        float visualization = isPerspective == 1 ? pow(depth, 20.0) : depth;
+        vec3 visualization_vector = vec3(visualization);
+        FragColor = vec4(visualization_vector, 1.0);
         return;
     }
     

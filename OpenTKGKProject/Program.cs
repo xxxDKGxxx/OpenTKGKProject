@@ -269,6 +269,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         LightningPassShader.LoadMatrix4("invView", Camera.ViewMatrix.Inverted());
         LightningPassShader.LoadMatrix4("invProj", Camera.ProjectionMatrix.Inverted());
         LightningPassShader.LoadFloat3("viewPos", Camera.Position);
+        LightningPassShader.LoadInteger("isPerspective", Camera.Projection is PerspectiveProjection ? 1 : 0);
         
         GBuffer.Draw(LightningPassShader);
         
