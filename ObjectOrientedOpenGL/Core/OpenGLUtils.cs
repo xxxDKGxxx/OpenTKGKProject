@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using OpenTK.Graphics.OpenGL;
+using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
+using GL = OpenTK.Graphics.OpenGL.GL;
 
 namespace ObjectOrientedOpenGL.Core;
 

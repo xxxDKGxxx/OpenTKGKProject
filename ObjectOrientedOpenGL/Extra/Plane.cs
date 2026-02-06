@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using ObjectOrientedOpenGL.Core;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace ObjectOrientedOpenGL.Extra;

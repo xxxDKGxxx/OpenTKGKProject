@@ -3,7 +3,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using ObjectOrientedOpenGL.Core;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using Vector2 = System.Numerics.Vector2;
 

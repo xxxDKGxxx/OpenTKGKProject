@@ -1,7 +1,5 @@
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace ObjectOrientedOpenGL.Core;

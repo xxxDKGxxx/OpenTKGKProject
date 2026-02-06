@@ -1,7 +1,6 @@
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL4;
 using StbImageSharp;
 
 namespace ObjectOrientedOpenGL.Core;

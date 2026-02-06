@@ -1,7 +1,6 @@
 using ObjectOrientedOpenGL.Core;
 using System.Runtime.InteropServices;
 using Assimp;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using PrimitiveType = OpenTK.Graphics.OpenGL4.PrimitiveType;
 using Mesh = ObjectOrientedOpenGL.Core.Mesh;
