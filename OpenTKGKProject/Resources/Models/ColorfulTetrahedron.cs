@@ -8,7 +8,7 @@ public sealed class ColorfulTetrahedron : IDisposable, IModel
     private readonly VertexBuffer _vertexBuffer;
     private readonly Mesh _mesh;
 
-    private Matrix4 _transform;
+    public Matrix4 ModelMatrix { get; set; }
 
     public ColorfulTetrahedron(Vector3 position)
     {
@@ -61,13 +61,13 @@ public sealed class ColorfulTetrahedron : IDisposable, IModel
 
         _mesh = new Mesh("ColorfulTetrahedron", PrimitiveType.Triangles, null, _vertexBuffer);
 
-        _transform = Matrix4.CreateTranslation(position);
+        ModelMatrix = Matrix4.CreateTranslation(position);
     }
 
     public void Render(Shader shader)
     {
         shader.Use();
-        shader.LoadMatrix4("model", _transform);
+        shader.LoadMatrix4("model", ModelMatrix);
 
         _mesh.Bind();
         _mesh.Render(0, _vertexBuffer.Count);
@@ -79,8 +79,6 @@ public sealed class ColorfulTetrahedron : IDisposable, IModel
         _vertexBuffer.Dispose();
         _mesh.Dispose();
     }
-
-    public Matrix4 ModelMatrix { get => _transform; set => _transform = value; }
 
     private static Vector3 CalcNormal(Vector3 a, Vector3 b, Vector3 c)
     {

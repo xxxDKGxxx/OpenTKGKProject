@@ -30,14 +30,12 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
     private ColorfulCube Cube { get; set; } = null!;
     private ColorfulTetrahedron ColorfulTetrahedron { get; set; } = null!;
     private Sphere Sphere { get; set; } = null!;
-    private CircleTrajectoryFollower CircleTrajectoryFollower = null!;
-    private RustyCar Car = null!;
+    private CircleTrajectoryFollower CircleTrajectoryFollower { get; set; } = null!;
+    private RustyCar Car { get; set; } = null!;
 
     private Camera Camera { get; set; } = null!;
     private LookAtObjectControl LookAtObjectControl { get; set; } = null!;
     private FollowObjectControl FollowObjectControl { get; set; } = null!;
-
-    private Sky Sky { get; set; } = null!;
     private Overlay Overlay { get; set; } = null!;
     private FpsCounter FpsCounter { get; set; } = null!;
     private Stopwatch Stopwatch { get; } = new();
@@ -50,8 +48,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
     private Spotlight Taillight { get; set; } = null!;
     private Spotlight Taillight2 { get; set; } = null!;
     private LightCubeModel LightCubeModel { get; set; } = null!;
-    private DirectionalLight SunLight = null!;
-    private TimeOfDay TimeOfDay = TimeOfDay.Day;
+    private DirectionalLight SunLight { get; set; } = null!;
+    private TimeOfDay TimeOfDay { get; set; } = TimeOfDay.Day;
 
 
     private DebugProc DebugProcCallback { get; } = OnDebugMessage;
@@ -113,6 +111,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
                 0),
             10.0f,
             MathHelper.PiOver4,
+            0.01f,
             MathHelper.PiOver2);
 
         Sphere = new Sphere(new Vector3(3, 3, 3));
@@ -127,7 +126,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         Matrix4 translation = Matrix4.CreateTranslation(0.0f, 1f, 0);
         Matrix4 transform = scale * translation;
 
-        Car.Transform = transform;
+        Car.ModelMatrix = transform;
 
         GBuffer = new GBuffer(ClientSize.X, ClientSize.Y);
 
@@ -203,6 +202,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         GeometryPassShader.Dispose();
         LightningPassShader.Dispose();
         Sphere.Dispose();
+        Ground.Dispose();
+        Car.Dispose();
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -223,8 +224,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 
         CircleTrajectoryFollower.Update(Car, (float)args.Time);
 
-        LookAtObjectControl.UpdateObjectMatrix(Car.Transform);
-        FollowObjectControl.UpdateObjectMatrix(Car.Transform);
+        LookAtObjectControl.UpdateObjectMatrix(Car.ModelMatrix);
+        FollowObjectControl.UpdateObjectMatrix(Car.ModelMatrix);
 
         Camera.Update((float)args.Time);
 
@@ -326,28 +327,24 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 
         foreach (var light in lights)
         {
-            if (light.Type == LightType.Point)
+            if(light.Type == LightType.Directional) continue;
+            
+            var modelMatrix = Matrix4.CreateScale(0.2f);
+            if (light.Type == LightType.Spotlight)
             {
-                var pointLightModelMatrix = Matrix4.CreateScale(0.2f) * Matrix4.CreateTranslation(light.Position);
+                var lightDir = light.Direction;
+                var up = Vector3.UnitY;
 
-                LightCubeShader.LoadMatrix4("model", pointLightModelMatrix);
-                LightCubeShader.LoadFloat3("lightColor", light.Color);
-                LightCubeModel.Render();
+                if (Math.Abs(Vector3.Dot(lightDir, up)) > 0.99f)
+                {
+                    up = Vector3.UnitZ;
+                }
 
-                continue;
+                var viewMatrix = Matrix4.LookAt(Vector3.Zero, lightDir, up);
+                var rotationMatrix = viewMatrix.Inverted();
+                modelMatrix *= rotationMatrix;
             }
-
-            var lightDir = light.Direction;
-            var up = Vector3.UnitY;
-
-            if (Math.Abs(Vector3.Dot(lightDir, up)) > 0.99f)
-            {
-                up = Vector3.UnitZ;
-            }
-
-            var viewMatrix = Matrix4.LookAt(Vector3.Zero, lightDir, up);
-            var rotationMatrix = viewMatrix.Inverted();
-            var modelMatrix = Matrix4.CreateScale(0.2f) * rotationMatrix * Matrix4.CreateTranslation(light.Position);
+            modelMatrix *= Matrix4.CreateTranslation(light.Position);
 
             LightCubeShader.LoadMatrix4("model", modelMatrix);
             LightCubeShader.LoadFloat3("lightColor", light.Color);
@@ -391,8 +388,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
     private static float _cutOff = MathHelper.DegreesToRadians(12.5f);
     private static float _outerCutOff = MathHelper.DegreesToRadians(17.5f);
     private static float _spotlightX = 0.0f;
-    private static float _spotLightY = 0.0f;
-    private static float _spotLightZ = 1.0f;
+    private static float _spotlightY = 0.0f;
+    private static float _spotlightZ = 1.0f;
     private static bool _debugLights = false;
 
     protected override void BuildGuiLayout()
@@ -436,24 +433,13 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         ImGui.Begin("Render mode");
 
         if (ImGui.RadioButton("Full", ref _renderMode, 0))
-        {
             GBuffer.RenderMode = RenderMode.Full;
-        }
-
         if (ImGui.RadioButton("Color", ref _renderMode, 1))
-        {
             GBuffer.RenderMode = RenderMode.Color;
-        }
-
         if (ImGui.RadioButton("Depth", ref _renderMode, 2))
-        {
             GBuffer.RenderMode = RenderMode.Depth;
-        }
-
         if (ImGui.RadioButton("Normals", ref _renderMode, 3))
-        {
             GBuffer.RenderMode = RenderMode.Normals;
-        }
 
         ImGui.Checkbox("Debug lights", ref _debugLights);
 
@@ -461,58 +447,35 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 
         ImGui.Begin("Spotlights");
 
-        if (ImGui.InputFloat("SpotlightX", ref _spotlightX, 0f))
-        {
-            foreach (var shaderLight in GetSceneLights())
-            {
-                if (shaderLight is Spotlight s && s != Taillight && s != Taillight2)
-                {
-                    s.SetDirection(new Vector3(_spotlightX, _spotLightY, _spotLightZ));
-                }
-            }
-        }
+        var sceneLights = GetSceneLights();
+        var spotlights = sceneLights.OfType<Spotlight>().Where(s => s != Taillight && s != Taillight2).ToArray();
 
-        if (ImGui.InputFloat("SpotlightY", ref _spotLightY, 0f))
-        {
-            foreach (var shaderLight in GetSceneLights())
-            {
-                if (shaderLight is Spotlight s && s != Taillight && s != Taillight2)
-                {
-                    s.SetDirection(new Vector3(_spotlightX, _spotLightY, _spotLightZ));
-                }
-            }
-        }
+        var directionChanged = ImGui.InputFloat("SpotlightX", ref _spotlightX, 0.1f);
+        directionChanged |= ImGui.InputFloat("SpotlightY", ref _spotlightY, 0.1f);
+        directionChanged |= ImGui.InputFloat("SpotlightZ", ref _spotlightZ, 0.1f);
 
-        if (ImGui.InputFloat("SpotlightZ", ref _spotLightZ, 0f))
+        if (directionChanged)
         {
-            foreach (var shaderLight in GetSceneLights())
+            var newDirection = new Vector3(_spotlightX, _spotlightY, _spotlightZ);
+            foreach (var spotlight in spotlights)
             {
-                if (shaderLight is Spotlight s && s != Taillight && s != Taillight2)
-                {
-                    s.SetDirection(new Vector3(_spotlightX, _spotLightY, _spotLightZ));
-                }
+                spotlight.SetDirection(newDirection);
             }
         }
 
         if (ImGui.SliderAngle("Cutoff Angle", ref _cutOff, 0, 90))
         {
-            foreach (var shaderLight in GetSceneLights())
+            foreach (var spotlight in spotlights)
             {
-                if (shaderLight is Spotlight s && s != Taillight && s != Taillight2)
-                {
-                    s.SetCutoff(MathF.Cos(_cutOff));
-                }
+                spotlight.SetCutoff(MathF.Cos(_cutOff));
             }
         }
 
-        if (ImGui.SliderAngle("Outer Cutoff Angle", ref _outerCutOff, _cutOff, 90))
+        if (ImGui.SliderAngle("Outer Cutoff Angle", ref _outerCutOff, 0, 90))
         {
-            foreach (var shaderLight in GetSceneLights())
+            foreach (var spotlight in spotlights)
             {
-                if (shaderLight is Spotlight s && s != Taillight && s != Taillight2)
-                {
-                    s.SetOuterCutOff(MathF.Cos(_outerCutOff));
-                }
+                spotlight.SetOuterCutOff(MathF.Cos(_outerCutOff));
             }
         }
 
@@ -521,14 +484,9 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         ImGui.Begin("Time of Day");
 
         if (ImGui.RadioButton("Day", ref _timeOfDay, 0))
-        {
             TimeOfDay = TimeOfDay.Day;
-        }
-
         if (ImGui.RadioButton("Night", ref _timeOfDay, 1))
-        {
             TimeOfDay = TimeOfDay.Night;
-        }
 
         ImGui.End();
 

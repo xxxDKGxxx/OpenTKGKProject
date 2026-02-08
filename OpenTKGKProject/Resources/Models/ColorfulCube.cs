@@ -8,7 +8,7 @@ public sealed class ColorfulCube : IDisposable, IModel
     private readonly VertexBuffer _vertexBuffer;
     private readonly Mesh _mesh;
 
-    public Matrix4 Transform = Matrix4.Identity;
+    public Matrix4 ModelMatrix { get; set; }
 
     public ColorfulCube(Vector3 position)
     {
@@ -72,13 +72,13 @@ public sealed class ColorfulCube : IDisposable, IModel
 
         _mesh = new Mesh("ColorfulCube", PrimitiveType.Triangles, null, _vertexBuffer);
 
-        Transform = Matrix4.CreateTranslation(position);
+        ModelMatrix = Matrix4.CreateTranslation(position);
     }
 
     public void Render(Shader shader)
     {
         shader.Use();
-        shader.LoadMatrix4("model", Transform);
+        shader.LoadMatrix4("model", ModelMatrix);
 
         _mesh.Bind();
         _mesh.Render(0, _vertexBuffer.Count);
@@ -90,6 +90,4 @@ public sealed class ColorfulCube : IDisposable, IModel
         _vertexBuffer.Dispose();
         _mesh.Dispose();
     }
-
-    public Matrix4 ModelMatrix { get => Transform; set => Transform = value; }
 }

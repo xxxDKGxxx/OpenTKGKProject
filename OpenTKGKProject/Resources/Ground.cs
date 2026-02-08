@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace OpenTKGKProject.Resources;
 
-public class Ground : IModel
+public class Ground : IModel, IDisposable
 {
     private readonly Mesh _mesh;
 
@@ -51,6 +51,11 @@ public class Ground : IModel
         _mesh.Bind();
         _mesh.RenderIndexed();
         _mesh.Unbind();
+    }
+
+    public void Dispose()
+    {
+        _mesh.Dispose();
     }
 
     public Matrix4 ModelMatrix { get; set; }

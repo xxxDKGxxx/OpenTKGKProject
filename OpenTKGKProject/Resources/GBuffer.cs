@@ -15,6 +15,10 @@ public sealed class GBuffer : IBindable, IDisposable
 {
     public RenderMode RenderMode = RenderMode.Full;
 
+    public const int DepthUnit = 0;
+    public const int NormalUnit = 1;
+    public const int ColorUnit = 2;
+
     private struct ScreenVertex(Vector2 position, Vector2 texCoord)
     {
         public Vector2 APos = position;
@@ -120,22 +124,22 @@ public sealed class GBuffer : IBindable, IDisposable
 
     public void BindTextures()
     {
-        _depthColorBuffer.ActivateUnit();
-        _normalColorBuffer.ActivateUnit(1);
-        _colorColorBuffer.ActivateUnit(2);
+        _depthColorBuffer.ActivateUnit(DepthUnit);
+        _normalColorBuffer.ActivateUnit(NormalUnit);
+        _colorColorBuffer.ActivateUnit(ColorUnit);
     }
 
     public void Draw(Shader shader)
     {
         BindTextures();
 
-        shader.LoadInteger("renderMode", (int)RenderMode);
-        shader.LoadInteger("gDepth", 0);
-        shader.LoadInteger("gNormal", 1);
-        shader.LoadInteger("gColor", 2);
-
         shader.Use();
-
+        
+        shader.LoadInteger("renderMode", (int)RenderMode);
+        shader.LoadInteger("gDepth", DepthUnit);
+        shader.LoadInteger("gNormal", NormalUnit);
+        shader.LoadInteger("gColor", ColorUnit);
+        
         _screenMesh.Bind();
 
         _screenMesh.RenderIndexed();

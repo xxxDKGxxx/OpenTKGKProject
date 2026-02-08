@@ -16,9 +16,9 @@ public static class SphereGenerator
                 var ySegment = (float)y / heightSegments;
 
                 // Kąty w radianach
-                var xPos = (float)(Math.Cos(xSegment * 2.0f * Math.PI) * Math.Sin(ySegment * Math.PI));
-                var yPos = (float)Math.Cos(ySegment * Math.PI);
-                var zPos = (float)(Math.Sin(xSegment * 2.0f * Math.PI) * Math.Sin(ySegment * Math.PI));
+                var xPos = MathF.Cos(xSegment * 2.0f * MathF.PI) * MathF.Sin(ySegment * MathF.PI);
+                var yPos = MathF.Cos(ySegment * MathF.PI);
+                var zPos = MathF.Sin(xSegment * 2.0f * MathF.PI) * MathF.Sin(ySegment * MathF.PI);
 
                 // 2. Tworzenie wierzchołka
                 Vertex v = new()

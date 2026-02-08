@@ -3,12 +3,12 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace OpenTKGKProject.Resources.Models.Sphere;
 
-public class Sphere : IDisposable
+public class Sphere : IDisposable, IModel
 {
     private readonly VertexBuffer _vertexBuffer;
     private readonly IndexBuffer _indexBuffer;
     private readonly Mesh _mesh;
-    private readonly Matrix4 _transform;
+    public Matrix4 ModelMatrix { get; set; }
 
     public Sphere(Vector3 position)
     {
@@ -27,13 +27,13 @@ public class Sphere : IDisposable
 
         _mesh = new Mesh("Sphere", PrimitiveType.Triangles, _indexBuffer, _vertexBuffer);
 
-        _transform = Matrix4.CreateTranslation(position);
+        ModelMatrix = Matrix4.CreateTranslation(position);
     }
 
     public void Render(Shader shader)
     {
         shader.Use();
-        shader.LoadMatrix4("model", _transform);
+        shader.LoadMatrix4("model", ModelMatrix);
 
         _mesh.Bind();
         _mesh.RenderIndexed(0, _indexBuffer.Count);
