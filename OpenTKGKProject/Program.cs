@@ -189,8 +189,10 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         Stopwatch.Start();
 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        GL.Disable(EnableCap.CullFace);
+        // GL.Disable(EnableCap.CullFace);
+        // GL.Enable(EnableCap.CullFace);
         GL.Enable(EnableCap.DepthTest);
+        GL.Enable(EnableCap.Multisample);
         GL.DepthFunc(DepthFunction.Lequal);
     }
 

@@ -73,15 +73,23 @@ public sealed class GBuffer : IBindable, IDisposable
     private void InitFramebuffer(int width, int height)
     {
         _framebuffer = new Framebuffer();
-
+        
+        var options = new Texture.Options(
+            new Texture.EnumParameter(TextureParameterName.TextureMinFilter, TextureMinFilter.Nearest),
+            new Texture.EnumParameter(TextureParameterName.TextureMagFilter, TextureMagFilter.Nearest));
+        
         _depthColorBuffer = new Texture();
         _depthColorBuffer.Allocate(width, height, SizedInternalFormat.DepthComponent32);
-
+        _depthColorBuffer.ApplyOptions(options);
+        
         _normalColorBuffer = new Texture();
         _normalColorBuffer.Allocate(width, height, SizedInternalFormat.Rgba16f);
-
+        _normalColorBuffer.ApplyOptions(options);
+        
+        // 3. Color Buffer (Albedo)
         _colorColorBuffer = new Texture();
         _colorColorBuffer.Allocate(width, height, SizedInternalFormat.Rgba16f);
+        _colorColorBuffer.ApplyOptions(options);
 
         _framebuffer.AttachTexture(FramebufferAttachment.DepthAttachment, _depthColorBuffer);
         _framebuffer.AttachTexture(FramebufferAttachment.ColorAttachment0, _normalColorBuffer);

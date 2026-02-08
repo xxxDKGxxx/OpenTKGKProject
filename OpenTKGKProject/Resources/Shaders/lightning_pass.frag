@@ -98,7 +98,7 @@ void main()
     fogFactor = clamp(fogFactor, 0.0, 1.0);
     
     vec3 finalColor = mix(fogColor, fragColor, fogFactor);
-
+    
     FragColor = vec4(finalColor, 1.0);
 }
 
@@ -141,7 +141,7 @@ vec3 CalculateDiffuseAndSpecular(Light light, vec3 normal, vec3 lightDir, vec3 v
     float diffStrength = 0.5;
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diffStrength * diff * light.color;
-
+    
     // specular
     float specularStrength = 0.5;
     vec3 viewDir = normalize(viewPos - fragPos);
