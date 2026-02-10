@@ -366,7 +366,7 @@ public class LookAtObjectControl : Camera.IControl
     
     public void Update(Camera camera, float dt)
     {
-        Position = camera.Position;
+        ViewMatrix = Matrix4.LookAt(Position, _targetObjectPosition, Up);
     }
 
     public void UpdateObjectMatrix(Matrix4tk objectModelMatrix)
@@ -385,7 +385,7 @@ public class LookAtObjectControl : Camera.IControl
     public Vector3 Forward => (_targetObjectPosition - Position).Normalized();
     public Vector3 Right => Vector3tk.Cross(Forward, Vector3tk.UnitY).Normalized();
     public Vector3 Up => Vector3tk.Cross(Right, Forward).Normalized();
-    public Matrix4 ViewMatrix => Matrix4.LookAt(Position, _targetObjectPosition, Up);
+    public Matrix4 ViewMatrix { get; set; }
 }
 
 public class FollowObjectControl : Camera.IControl
@@ -418,7 +418,7 @@ public class FollowObjectControl : Camera.IControl
 
     public void Update(Camera camera, float dt)
     {
-        ViewMatrix = Matrix4.LookAt(Position, FocalPoint, Up);
+        ViewMatrix = Matrix4tk.LookAt(Position, FocalPoint, Up);
     }
 
     public void HandleInput(Camera camera, float dt, KeyboardState keyboard, MouseState mouse)

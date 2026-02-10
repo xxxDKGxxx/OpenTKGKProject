@@ -24,9 +24,9 @@ public enum TimeOfDay
 public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings)
     : ImGuiGameWindow(gameWindowSettings, nativeWindowSettings)
 {
+    private Shader ShadowPassShader { get; set; } = null!;
     private Shader GeometryPassShader { get; set; } = null!;
     private Shader LightningPassShader { get; set; } = null!;
-    private Shader ShadowPassShader { get; set; } = null!;
     private Shader LightCubeShader { get; set; } = null!;
     private ColorfulCube Cube { get; set; } = null!;
     private ColorfulTetrahedron ColorfulTetrahedron { get; set; } = null!;
@@ -312,6 +312,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 
         Context.SwapBuffers();
     }
+    
+    // Scene lights
 
     private IShaderLight[] GetSceneLights()
     {
@@ -333,7 +335,41 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         return [.. lights];
     }
     
-private Matrix4 GetDirectionalLightMatrix(Light light)
+    private void SetupLights(Light[] lights)
+    {
+        for (var i = 0; i < lights.Length; i++)
+        {
+            var name = $"lights[{i}]";
+
+            var light = lights[i];
+
+            // Wysyłamy pola jedno po drugim
+            LightningPassShader.LoadInteger($"{name}.type", (int)light.Type);
+            LightningPassShader.LoadFloat3($"{name}.position", light.Position);
+            LightningPassShader.LoadFloat3($"{name}.color", light.Color);
+            
+            LightningPassShader.LoadMatrix4($"{name}.lightSpaceMatrix", light.LightSpaceMatrix);
+            LightningPassShader.LoadInteger(
+                $"{name}.shadowMapLayerIndex", 
+                light.Type == LightType.Point ? -1 : light.ShadowMapLayerIndex);
+
+            // Attenuation
+            LightningPassShader.LoadFloat($"{name}.constant", light.Constant);
+            LightningPassShader.LoadFloat($"{name}.linear", light.Linear);
+            LightningPassShader.LoadFloat($"{name}.quadratic", light.Quadratic);
+
+            // Reflektor (Spot Light)
+            LightningPassShader.LoadFloat3($"{name}.direction", light.Direction);
+            LightningPassShader.LoadFloat($"{name}.cutOff", light.CutOff);
+            LightningPassShader.LoadFloat($"{name}.outerCutOff", light.OuterCutOff);
+        }
+
+        LightningPassShader.LoadInteger("lightCount", lights.Length);
+    }
+    
+    // Matricies for shadows
+    
+    private Matrix4 GetDirectionalLightMatrix(Light light)
 {
     const float size = 64.0f;
     const float nearPlane = -100.0f; 
@@ -388,6 +424,8 @@ private Matrix4 GetDirectionalLightMatrix(Light light)
         var view = Matrix4.LookAt(light.Position, target, up);
         return view * projection;
     }
+    
+    // Rendering
 
     private void RenderScene(Shader shader)
     {
@@ -487,48 +525,16 @@ private Matrix4 GetDirectionalLightMatrix(Light light)
         LightCubeModel.Unbind();
     }
 
-    private void SetupLights(Light[] lights)
-    {
-        for (var i = 0; i < lights.Length; i++)
-        {
-            var name = $"lights[{i}]";
-
-            var light = lights[i];
-
-            // Wysyłamy pola jedno po drugim
-            LightningPassShader.LoadInteger($"{name}.type", (int)light.Type);
-            LightningPassShader.LoadFloat3($"{name}.position", light.Position);
-            LightningPassShader.LoadFloat3($"{name}.color", light.Color);
-            
-            LightningPassShader.LoadMatrix4($"{name}.lightSpaceMatrix", light.LightSpaceMatrix);
-            LightningPassShader.LoadInteger(
-                $"{name}.shadowMapLayerIndex", 
-                light.Type == LightType.Point ? -1 : light.ShadowMapLayerIndex);
-
-            // Attenuation
-            LightningPassShader.LoadFloat($"{name}.constant", light.Constant);
-            LightningPassShader.LoadFloat($"{name}.linear", light.Linear);
-            LightningPassShader.LoadFloat($"{name}.quadratic", light.Quadratic);
-
-            // Reflektor (Spot Light)
-            LightningPassShader.LoadFloat3($"{name}.direction", light.Direction);
-            LightningPassShader.LoadFloat($"{name}.cutOff", light.CutOff);
-            LightningPassShader.LoadFloat($"{name}.outerCutOff", light.OuterCutOff);
-        }
-
-        LightningPassShader.LoadInteger("lightCount", lights.Length);
-    }
-
     private static int _control = 3;
     private static int _projection;
-    private static int _renderMode = 0;
-    private static int _timeOfDay = 0;
+    private static int _renderMode;
+    private static int _timeOfDay;
     private static float _cutOff = MathHelper.DegreesToRadians(12.5f);
     private static float _outerCutOff = MathHelper.DegreesToRadians(17.5f);
-    private static float _spotlightX = 0.0f;
-    private static float _spotlightY = 0.0f;
+    private static float _spotlightX;
+    private static float _spotlightY;
     private static float _spotlightZ = 1.0f;
-    private static bool _debugLights = false;
+    private static bool _debugLights;
 
     protected override void BuildGuiLayout()
     {

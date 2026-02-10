@@ -28,7 +28,7 @@ public struct Light
 
     public float LightRange()
     {
-        var threshold = 5.0f / 256.0f; 
+        const float threshold = 5.0f / 256.0f; 
 
         var lightMax = Math.Max(Color.X, Math.Max(Color.Y, Color.Z));
 
