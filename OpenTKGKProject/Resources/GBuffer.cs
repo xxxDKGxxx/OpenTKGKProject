@@ -69,7 +69,7 @@ public sealed class GBuffer : IBindable, IDisposable
 
         _screenMesh = new Mesh("screen", PrimitiveType.Triangles, ScreenIndexBuffer, ScreenVertexBuffer);
     }
-
+    
     private void InitFramebuffer(int width, int height)
     {
         _framebuffer = new Framebuffer();
@@ -86,7 +86,6 @@ public sealed class GBuffer : IBindable, IDisposable
         _normalColorBuffer.Allocate(width, height, SizedInternalFormat.Rgba16f);
         _normalColorBuffer.ApplyOptions(options);
         
-        // 3. Color Buffer (Albedo)
         _colorColorBuffer = new Texture();
         _colorColorBuffer.Allocate(width, height, SizedInternalFormat.Rgba16f);
         _colorColorBuffer.ApplyOptions(options);
@@ -95,12 +94,12 @@ public sealed class GBuffer : IBindable, IDisposable
         _framebuffer.AttachTexture(FramebufferAttachment.ColorAttachment0, _normalColorBuffer);
         _framebuffer.AttachTexture(FramebufferAttachment.ColorAttachment1, _colorColorBuffer);
 
-        GL.NamedFramebufferDrawBuffers(_framebuffer.Handle,
+        GL.NamedFramebufferDrawBuffers(
+            _framebuffer.Handle,
             2,
             [
                 DrawBuffersEnum.ColorAttachment0,
-                DrawBuffersEnum.ColorAttachment1,
-            ]);
+                DrawBuffersEnum.ColorAttachment1]);
     }
 
     public void Resize(int width, int height)
@@ -149,7 +148,6 @@ public sealed class GBuffer : IBindable, IDisposable
         shader.LoadInteger("gColor", ColorUnit);
         
         _screenMesh.Bind();
-
         _screenMesh.RenderIndexed();
         _screenMesh.Unbind();
     }

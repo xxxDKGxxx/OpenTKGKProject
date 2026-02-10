@@ -46,6 +46,16 @@ public class Spotlight(
         return resultLight;
     }
 
+    public void SetShaderLightSpaceMatrix(Matrix4 matrix)
+    {
+        _light.LightSpaceMatrix = matrix;
+    }
+
+    public void SetShaderLightShaderMapIndex(int index)
+    {
+        _light.ShadowMapLayerIndex = index;
+    }
+
     public void SetDirection(Vector3 dir)
     {
         _light.Direction = dir.Normalized();

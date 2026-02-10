@@ -6,6 +6,9 @@ struct Light {
     vec3 position;
     vec3 direction;
     vec3 color;
+
+    mat4 lightSpaceMatrix;
+    int shadowMapLayerIndex;
     
     // attenuation
     float constant;
@@ -22,6 +25,7 @@ uniform int renderMode; // 0 - full, 1 - depth, 2 - normals, 3 - color
 uniform sampler2D gDepth;
 uniform sampler2D gNormal;
 uniform sampler2D gColor;
+uniform sampler2DArray gShadow;
 
 const int MAX_LIGHTS = 32;
 
@@ -37,6 +41,8 @@ uniform mat4 invProj;
 uniform vec3 viewPos;
 
 uniform int isPerspective;
+uniform float near;
+uniform float far;
 
 in vec2 TexCoords;
 
@@ -44,12 +50,14 @@ vec3 CalculateDiffuseAndSpecular(Light light, vec3 normal, vec3 lightDir, vec3 v
 vec3 CalcPointLight(Light light, vec3 normal, vec3 fragPos, vec3 viewPos, vec3 objColor);
 vec3 CalcSpotlight(Light light, vec3 normal, vec3 fragPos, vec3 viewPos, vec3 objColor);
 vec3 CalcDirLight(Light light, vec3 normal, vec3 fragPos, vec3 viewPos, vec3 objColor);
+float CalcShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int layerIndex);
+float LinearizeDepth(float depth);
 
 void main()
 {
     if (renderMode == 1) { // depth
         float depth = texture(gDepth, TexCoords).r;
-        float visualization = isPerspective == 1 ? pow(depth, 20.0) : depth;
+        float visualization = isPerspective == 1 ? LinearizeDepth(depth) / far : depth;
         vec3 visualization_vector = vec3(visualization);
         FragColor = vec4(visualization_vector, 1.0);
         return;
@@ -71,6 +79,7 @@ void main()
     
     fragPos /= fragPos.w;
     fragPos = invView * fragPos;
+    fragPos /= fragPos.w;
     
     vec3 objColor = texture(gColor, TexCoords).xyz;
     vec3 fragColor = vec3(0.05) * objColor; // ambient
@@ -100,6 +109,40 @@ void main()
     vec3 finalColor = mix(fogColor, fragColor, fogFactor);
     
     FragColor = vec4(finalColor, 1.0);
+}
+
+float CalcShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir, int layerIndex)
+{
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    
+    projCoords = projCoords * 0.5 + 0.5;
+    
+    if(projCoords.z > 1.0)
+        return 0.0;
+    
+    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
+    
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(gShadow, 0).xy;
+
+    for(int x = -2; x <= 2; ++x)
+    {
+        for(int y = -2; y <= 2; ++y)
+        {
+            float pcfDepth = texture(gShadow, vec3(projCoords.xy + vec2(x, y) * texelSize, layerIndex)).r;
+            shadow += (projCoords.z - bias > pcfDepth ? 1.0 : 0.0);
+        }
+    }
+    
+    shadow /= 25.0;
+
+    return shadow;
+}
+
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
 vec3 CalcDirLight(Light light, vec3 normal, vec3 fragPos, vec3 viewPos, vec3 objColor)
@@ -138,7 +181,7 @@ vec3 CalculateDiffuseAndSpecular(Light light, vec3 normal, vec3 lightDir, vec3 v
     lightDir = normalize(lightDir);
     
     // diffuse
-    float diffStrength = 0.5;
+    float diffStrength = 1;
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diffStrength * diff * light.color;
     
@@ -149,5 +192,13 @@ vec3 CalculateDiffuseAndSpecular(Light light, vec3 normal, vec3 lightDir, vec3 v
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * light.color;
     
-    return diffuse * objColor + specular;
+    float shadow = 0.0;
+
+    if(light.shadowMapLayerIndex >= 0 && diff > 0.0)
+    {
+        vec4 fragPosLightSpace = light.lightSpaceMatrix * vec4(fragPos, 1.0);
+        shadow = CalcShadow(fragPosLightSpace, normal, lightDir, light.shadowMapLayerIndex);
+    }
+    
+    return (1.0 - shadow) * (diffuse * objColor + specular);
 }

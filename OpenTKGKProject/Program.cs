@@ -26,6 +26,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
 {
     private Shader GeometryPassShader { get; set; } = null!;
     private Shader LightningPassShader { get; set; } = null!;
+    private Shader ShadowPassShader { get; set; } = null!;
     private Shader LightCubeShader { get; set; } = null!;
     private ColorfulCube Cube { get; set; } = null!;
     private ColorfulTetrahedron ColorfulTetrahedron { get; set; } = null!;
@@ -40,6 +41,7 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
     private FpsCounter FpsCounter { get; set; } = null!;
     private Stopwatch Stopwatch { get; } = new();
     private GBuffer GBuffer { get; set; } = null!;
+    private ShadowBuffer ShadowBuffer { get; set; } = null!;
     private Ground Ground { get; set; } = null!;
     private PointLight PointLight { get; set; } = null!;
     private Spotlight StaticSpotLight { get; set; } = null!;
@@ -89,6 +91,10 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
             ("OpenTKGKProject.Resources.Shaders.lightning_pass.vert", ShaderType.VertexShader),
             ("OpenTKGKProject.Resources.Shaders.lightning_pass.frag", ShaderType.FragmentShader));
 
+        ShadowPassShader = new Shader(
+            ("OpenTKGKProject.Resources.Shaders.shadow_pass.vert", ShaderType.VertexShader),
+            ("OpenTKGKProject.Resources.Shaders.shadow_pass.frag", ShaderType.FragmentShader));
+
         LightCubeShader = new Shader(
             ("OpenTKGKProject.Resources.Shaders.light_cube.vert", ShaderType.VertexShader),
             ("OpenTKGKProject.Resources.Shaders.light_cube.frag", ShaderType.FragmentShader));
@@ -129,6 +135,8 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         Car.ModelMatrix = transform;
 
         GBuffer = new GBuffer(ClientSize.X, ClientSize.Y);
+
+        ShadowBuffer = new ShadowBuffer();
 
         Ground = new Ground(100f, new Vector3(0.5f, 0.5f, 0.5f));
 
@@ -189,8 +197,6 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         Stopwatch.Start();
 
         GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        // GL.Disable(EnableCap.CullFace);
-        // GL.Enable(EnableCap.CullFace);
         GL.Enable(EnableCap.DepthTest);
         GL.Enable(EnableCap.Multisample);
         GL.DepthFunc(DepthFunction.Lequal);
@@ -203,6 +209,9 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         Cube.Dispose();
         GeometryPassShader.Dispose();
         LightningPassShader.Dispose();
+        ShadowPassShader.Dispose();
+        ShadowBuffer.Dispose();
+        GBuffer.Dispose();
         Sphere.Dispose();
         Ground.Dispose();
         Car.Dispose();
@@ -244,6 +253,13 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
     {
         base.OnRenderFrame(args);
 
+        // Shadow Pass
+        RenderLightShadows(GetSceneLights());
+
+        var lights = GetSceneLights()
+            .Select(l => l.GetShaderLightData())
+            .ToArray();
+        
         // Geometry Pass
         GBuffer.Bind();
 
@@ -253,21 +269,13 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         GeometryPassShader.LoadMatrix4("view", Camera.ViewMatrix);
         GeometryPassShader.LoadMatrix4("projection", Camera.ProjectionMatrix);
 
-        Cube.Render(GeometryPassShader);
-        ColorfulTetrahedron.Render(GeometryPassShader);
-        Sphere.Render(GeometryPassShader);
-        Car.Render(GeometryPassShader);
-        Ground.Render(GeometryPassShader);
+        RenderScene(GeometryPassShader);
 
         GBuffer.Unbind();
 
         // Lightning pass
         GL.Disable(EnableCap.DepthTest);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-        var lights = GetSceneLights()
-            .Select(l => l.GetShaderLightData())
-            .ToArray();
 
         SetupLights(lights);
 
@@ -279,7 +287,12 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         LightningPassShader.LoadMatrix4("invProj", Camera.ProjectionMatrix.Inverted());
         LightningPassShader.LoadFloat3("viewPos", Camera.Position);
         LightningPassShader.LoadInteger("isPerspective", Camera.Projection is PerspectiveProjection ? 1 : 0);
+        LightningPassShader.LoadFloat("near", (Camera.Projection as PerspectiveProjection)?.Near ?? 0f);
+        LightningPassShader.LoadFloat("far", (Camera.Projection as PerspectiveProjection)?.Far ?? 0f);
 
+        ShadowBuffer.BindTextures();
+        LightningPassShader.LoadInteger("gShadow", ShadowBuffer.ShadowUnit);
+        
         GBuffer.Draw(LightningPassShader);
 
         // Forward pass
@@ -318,6 +331,124 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
         }
 
         return [.. lights];
+    }
+    
+private Matrix4 GetDirectionalLightMatrix(Light light)
+{
+    const float size = 64.0f;
+    const float nearPlane = -100.0f; 
+    const float farPlane = 100.0f;
+
+    var lightDir = Vector3.Normalize(light.Direction);
+    var up = Vector3.UnitY;
+    
+    if (Math.Abs(Vector3.Dot(lightDir, up)) > 0.99f) 
+    {
+        up = Vector3.UnitZ;
+    }
+    
+    var right = Vector3.Normalize(Vector3.Cross(lightDir, up));
+    var actualUp = Vector3.Normalize(Vector3.Cross(right, lightDir));
+    
+    var camPos = Camera.Position;
+
+    var lightPos = camPos - lightDir * (farPlane / 2.0f);
+    
+    var lightView = Matrix4.LookAt(lightPos, camPos, actualUp);
+
+    var lightProjection = Matrix4.CreateOrthographicOffCenter(
+        -size, size, 
+        -size, size, 
+        nearPlane, farPlane
+    );
+
+    return lightView * lightProjection;
+}
+
+    private static Matrix4 GetSpotlightMatrix(Light light)
+    {
+        const float nearPlane = 0.5f;
+        var farPlane = light.LightRange();
+
+        var angleRadians = MathF.Acos(light.OuterCutOff);
+        
+        var fov = angleRadians * 2.0f * 1.1f;
+
+        fov = Math.Clamp(fov, 0.1f, (float)Math.PI - 0.1f);
+
+        var projection = Matrix4.CreatePerspectiveFieldOfView(fov, 1.0f, nearPlane, farPlane);
+
+        var target = light.Position + light.Direction;
+        var up = Vector3.UnitY;
+        if (Math.Abs(Vector3.Dot(light.Direction.Normalized(), Vector3.UnitY)) > 0.99f)
+        {
+            up = Vector3.UnitZ;
+        }
+
+        var view = Matrix4.LookAt(light.Position, target, up);
+        return view * projection;
+    }
+
+    private void RenderScene(Shader shader)
+    {
+        Cube.Render(shader);
+        ColorfulTetrahedron.Render(shader);
+        Sphere.Render(shader);
+        Car.Render(shader);
+        Ground.Render(shader);
+    }
+
+    private void RenderLightShadows(IShaderLight[] lights)
+    {
+        GL.Enable(EnableCap.CullFace);
+        GL.CullFace(CullFaceMode.Front);
+        
+        ShadowPassShader.Use();
+        
+        GL.Viewport(0, 0, ShadowBuffer.ShadowWidth, ShadowBuffer.ShadowHeight);
+        
+        ShadowBuffer.Bind();
+        
+        var shadowLights = lights.Where(l => l.GetShaderLightData().Type != LightType.Point)
+            .ToArray();
+        
+        var shadowLightsStruct = shadowLights.Select(l => l.GetShaderLightData())
+            .ToArray();
+        
+        for (var i = 0; i < shadowLightsStruct.Length; i++)
+        {
+            ShadowBuffer.BindTextureLayer(i);
+            
+            GL.Clear(ClearBufferMask.DepthBufferBit);
+            
+            var light = shadowLightsStruct[i];
+
+            Matrix4 lightSpaceMatrix;
+            
+            switch (light.Type)
+            {
+                case LightType.Directional:
+                    lightSpaceMatrix = GetDirectionalLightMatrix(light);
+                    break;
+                case LightType.Spotlight:
+                    lightSpaceMatrix = GetSpotlightMatrix(light);
+                    break;
+                case LightType.Point:
+                default:
+                    continue;
+            }
+            
+            ShadowPassShader.LoadMatrix4("lightProjViewMatrix", lightSpaceMatrix);
+            
+            RenderScene(ShadowPassShader);
+            
+            shadowLights[i].SetShaderLightShaderMapIndex(i);
+            shadowLights[i].SetShaderLightSpaceMatrix(lightSpaceMatrix);
+        }
+        ShadowBuffer.Unbind();
+        
+        GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
+        GL.Disable(EnableCap.CullFace);
     }
 
     private void RenderLights(Light[] lights)
@@ -368,6 +499,11 @@ public class Program(GameWindowSettings gameWindowSettings, NativeWindowSettings
             LightningPassShader.LoadInteger($"{name}.type", (int)light.Type);
             LightningPassShader.LoadFloat3($"{name}.position", light.Position);
             LightningPassShader.LoadFloat3($"{name}.color", light.Color);
+            
+            LightningPassShader.LoadMatrix4($"{name}.lightSpaceMatrix", light.LightSpaceMatrix);
+            LightningPassShader.LoadInteger(
+                $"{name}.shadowMapLayerIndex", 
+                light.Type == LightType.Point ? -1 : light.ShadowMapLayerIndex);
 
             // Attenuation
             LightningPassShader.LoadFloat($"{name}.constant", light.Constant);

@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using StbImageSharp;
 
@@ -9,10 +8,13 @@ public class Texture : IDisposable, IBindable
 {
     public int Handle { get; }
 
-    public Texture()
+    private TextureTarget _target;
+
+    public Texture(TextureTarget target = TextureTarget.Texture2D)
     {
-        GL.CreateTextures(TextureTarget.Texture2D, 1, out int handle);
+        GL.CreateTextures(target, 1, out int handle);
         Handle = handle;
+        _target = target;
     }
 
     public Texture(string path, bool resource = true, Options? options = null, bool generateMipmaps = true) : this()
@@ -49,6 +51,12 @@ public class Texture : IDisposable, IBindable
     {
         if (levels < 0) levels = BitOperations.Log2((uint)Math.Max(width, height));
         GL.TextureStorage2D(Handle, levels, internalFormat, width, height);
+    }
+
+    public void Allocate3d(int width, int height, int layers, SizedInternalFormat internalFormat, int levels = -1)
+    {
+        if (levels < 0) levels = BitOperations.Log2((uint)Math.Max(width, height));
+        GL.TextureStorage3D(Handle, levels, internalFormat, width, height, layers);
     }
 
     public void Update(Array data, int x, int y, int width, int height, PixelFormat format, PixelType pixelType,
@@ -97,12 +105,12 @@ public class Texture : IDisposable, IBindable
 
     public void Bind()
     {
-        GL.BindTexture(TextureTarget.Texture2D, Handle);
+        GL.BindTexture(_target, Handle);
     }
 
     public void Unbind()
     {
-        GL.BindTexture(TextureTarget.Texture2D, 0);
+        GL.BindTexture(_target, 0);
     }
 
     public void Dispose()

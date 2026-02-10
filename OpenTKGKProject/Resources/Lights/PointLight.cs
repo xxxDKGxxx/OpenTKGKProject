@@ -22,4 +22,14 @@ public class PointLight(
     {
         return _light;
     }
+
+    public void SetShaderLightSpaceMatrix(Matrix4 matrix)
+    {
+        return;
+    }
+
+    public void SetShaderLightShaderMapIndex(int index)
+    {
+        return;
+    }
 }

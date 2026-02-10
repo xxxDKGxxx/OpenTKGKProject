@@ -17,6 +17,17 @@ public class Framebuffer : IBindable, IDisposable
         TextureAttachments[attachment] = texture;
         GL.NamedFramebufferTexture(Handle, attachment, texture.Handle, level);
     }
+
+    public void AttachTextureLayer(FramebufferAttachment attachment, Texture texture, int layer, int level = 0)
+    {
+        TextureAttachments[attachment] = texture;
+        GL.NamedFramebufferTextureLayer(
+            Handle,
+            attachment,
+            texture.Handle,
+            level,
+            layer);
+    }
     
     public void AttachRenderBuffer(FramebufferAttachment attachment, Renderbuffer renderbuffer)
     {
