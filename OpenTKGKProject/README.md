@@ -75,3 +75,6 @@ This project implements a modern rendering pipeline using OpenGL, focusing on de
 - `Resources/Models`: 3D model data and loaders.
 - `Resources/Lights`: Implementations of various light types.
 - `Program.cs`: Main application entry point and game loop orchestration.
+
+## Acknowledgments
+Special thanks to @tomasz-herman for letting me use his Object Oriented OpenGL for this project.
