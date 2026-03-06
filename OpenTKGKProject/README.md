@@ -77,4 +77,4 @@ This project implements a modern rendering pipeline using OpenGL, focusing on de
 - `Program.cs`: Main application entry point and game loop orchestration.
 
 ## Acknowledgments
-Special thanks to [Tomasz Herman](https://github.com/tomasz-herman) for letting me use his Object Oriented OpenGL for this project.
+Special thanks to [Tomasz Herman](https://github.com/tomasz-herman) for letting me use his Object Oriented OpenGL template for this project.
